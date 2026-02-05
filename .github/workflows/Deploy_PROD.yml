@@ -1,0 +1,36 @@
+name: Build and Upload Artifact to S3
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build-upload:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout code
+      - uses: actions/checkout@v4
+
+      # Setup Java
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      # Build artifact
+      - name: Build with Maven
+        run: mvn clean package
+
+      # Upload JAR to S3
+      - name: Upload Artifact to S3
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+        run: |
+          ARTIFACT=$(ls target/*.jar | head -n 1)
+          echo "Uploading $ARTIFACT to S3..."
+          aws s3 cp "$ARTIFACT" "s3://$S3_BUCKET/artifacts/$(basename $ARTIFACT)"
